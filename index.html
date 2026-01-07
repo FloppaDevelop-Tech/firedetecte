@@ -104,6 +104,34 @@
 
     <audio id="customAlert" src="alert.mp3"></audio>
 
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAnalytics, logEvent } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js';
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyB9rjZcP3Qz6JOHcaDMS1OjVIfLbQitnjw",
+            authDomain: "firedetecte.firebaseapp.com",
+            projectId: "firedetecte",
+            storageBucket: "firedetecte.firebasestorage.app",
+            messagingSenderId: "31210582028",
+            appId: "1:31210582028:web:d9c43f9c44f32ebdc6be29",
+            measurementId: "G-913W448DMK"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+
+        console.log("Firebase initialized successfully");
+
+        // Make analytics available globally for logging events
+        window.firebaseAnalytics = analytics;
+        window.logFirebaseEvent = logEvent;
+    </script>
+
     <script>
         let port;
         let reader;
@@ -210,29 +238,46 @@
             console.log("RX:", line);
 
             // Handle Different Alert Types
-            // Expected formats:
-            // "ALERT:FIRE:TEMP:xx" - Fire detected
-            // "ALERT:SMOKE:TEMP:xx" - Smoke detected
-            // "ALERT:CRITICAL:TEMP:xx" - Both fire and smoke
-            // "ALERT:TEMP:xx" - Legacy format (fire only)
-
             if (line.startsWith("ALERT:")) {
                 const parts = line.split(':');
 
                 if (parts.length >= 4) {
-                    // New format with alert type
                     const alertType = parts[1];
                     const temp = parts[3];
 
                     if (alertType === "CRITICAL") {
                         addLog(`CRITICAL! Fire & Smoke Detected! Temp: ${temp}°C`, 'critical');
-                        playAlertSound(880, 'sawtooth'); // High pitch for critical
+                        playAlertSound(880, 'sawtooth');
+                        // Log to Firebase Analytics
+                        if (window.logFirebaseEvent && window.firebaseAnalytics) {
+                            window.logFirebaseEvent(window.firebaseAnalytics, 'fire_alert', {
+                                alert_type: 'critical',
+                                temperature: temp,
+                                location: '505/5 ซอย อิสรภาพ 42'
+                            });
+                        }
                     } else if (alertType === "FIRE") {
                         addLog(`Fire Detected! Temp: ${temp}°C`, 'danger');
-                        playAlertSound(660, 'square'); // Medium pitch
+                        playAlertSound(660, 'square');
+                        // Log to Firebase Analytics
+                        if (window.logFirebaseEvent && window.firebaseAnalytics) {
+                            window.logFirebaseEvent(window.firebaseAnalytics, 'fire_alert', {
+                                alert_type: 'fire',
+                                temperature: temp,
+                                location: '505/5 ซอย อิสรภาพ 42'
+                            });
+                        }
                     } else if (alertType === "SMOKE") {
                         addLog(` Smoke Detected! Temp: ${temp}°C`, 'warning');
-                        playAlertSound(440, 'sine'); // Low pitch
+                        playAlertSound(440, 'sine');
+                        // Log to Firebase Analytics
+                        if (window.logFirebaseEvent && window.firebaseAnalytics) {
+                            window.logFirebaseEvent(window.firebaseAnalytics, 'fire_alert', {
+                                alert_type: 'smoke',
+                                temperature: temp,
+                                location: '505/5 ซอย อิสรภาพ 42'
+                            });
+                        }
                     }
                 } else if (parts.length >= 3 && parts[1] === "TEMP") {
                     // Legacy format
@@ -243,54 +288,61 @@
             // Handle Acknowledgment
             else if (line.includes("ACK:")) {
                 console.log("Command Acknowledged:", line);
-            } else if (line.includes("RESET")) {
-                statusDiv.innerText = "Status: System Reset";
-                // Ensure logs are cleared on confirmation
-                logList.innerHTML = '<li style="color:#aaa; text-align:center; padding:10px;">No incidents recorded</li>';
+                if (line.includes("MUTED")) {
+                    statusDiv.innerText = "Status: Alarm Muted";
+                } else if (line.includes("RESET")) {
+                    statusDiv.innerText = "Status: System Reset";
+                    logList.innerHTML = '<li style="color:#aaa; text-align:center; padding:10px;">No incidents recorded</li>';
+                }
             }
-        }
             // Handle Status Telemetry
             // Format: STATUS:FIRE:<val>:SMOKE:<val>:TEMP:<val>
             else if (line.startsWith("STATUS:")) {
-            const parts = line.split(':');
-            if (parts.length >= 7) {
-                const fireVal = parseInt(parts[2]);
-                const smokeVal = parseInt(parts[4]);
-                const tempVal = parts[6];
+                const parts = line.split(':');
+                if (parts.length >= 7) {
+                    const fireVal = parseInt(parts[2]);
+                    const smokeVal = parseInt(parts[4]);
+                    const tempVal = parts[6];
 
-                // Update Dashboard
-                document.getElementById('tempValue').innerText = tempVal + "°C";
-                document.getElementById('smokeValue').innerText = smokeVal;
-                document.getElementById('fireValue').innerText = fireVal;
+                    // Update Dashboard
+                    const tempEl = document.getElementById('tempValue');
+                    const smokeEl = document.getElementById('smokeValue');
+                    const fireEl = document.getElementById('fireValue');
 
-                // Update LEDs
-                // Red LED for Fire (Value < 300)
-                const ledRed = document.getElementById('ledRed');
-                if (fireVal < 300) {
-                    ledRed.classList.add('active');
-                } else {
-                    ledRed.classList.remove('active');
-                }
+                    if (tempEl) tempEl.innerText = tempVal + "°C";
+                    if (smokeEl) smokeEl.innerText = smokeVal;
+                    if (fireEl) fireEl.innerText = fireVal;
 
-                // Orange LED for Smoke (Value > 620)
-                const ledOrange = document.getElementById('ledOrange');
-                if (smokeVal > 620) {
-                    ledOrange.classList.add('active');
-                } else {
-                    ledOrange.classList.remove('active');
+                    // Update LEDs
+                    // Red LED for Fire (Value < 300)
+                    const ledRed = document.getElementById('ledRed');
+                    if (ledRed) {
+                        if (fireVal < 300) {
+                            ledRed.classList.add('active');
+                        } else {
+                            ledRed.classList.remove('active');
+                        }
+                    }
+
+                    // Orange LED for Smoke (Value > 620)
+                    const ledOrange = document.getElementById('ledOrange');
+                    if (ledOrange) {
+                        if (smokeVal > 620) {
+                            ledOrange.classList.add('active');
+                        } else {
+                            ledOrange.classList.remove('active');
+                        }
+                    }
                 }
             }
-        }
         }
 
         function playAlertSound(freq = 660, type = 'square') {
             // OPTION 1: Use Recorded Audio (alert.mp3)
-            // If you have a file named 'alert.mp3' in your folder, it will play.
-            if (customAudio && customAudio.readyState >= 2) { // 2 = HAD_CURRENT_DATA
-                // Reset to start and play
+            if (customAudio && customAudio.readyState >= 2) {
                 customAudio.currentTime = 0;
-                customAudio.play().catch(e => console.log("Custom audio play error (maybe file not found?):", e));
-                return; // Exit function so we don't play the beep too
+                customAudio.play().catch(e => console.log("Custom audio play error:", e));
+                return;
             }
 
             // OPTION 2: Fallback to Generated Beep
@@ -299,7 +351,7 @@
             const now = audioCtx.currentTime;
             const beepDuration = 0.1;
             const pauseDuration = 0.1;
-            const repeatCount = 3; // Beep 3 times per alert
+            const repeatCount = 3;
 
             for (let i = 0; i < repeatCount; i++) {
                 const startTime = now + (i * (beepDuration + pauseDuration));
@@ -310,7 +362,6 @@
                 osc.type = type;
                 osc.frequency.setValueAtTime(freq, startTime);
 
-                // Envelope
                 gain.gain.setValueAtTime(0, startTime);
                 gain.gain.linearRampToValueAtTime(0.3, startTime + 0.02);
                 gain.gain.linearRampToValueAtTime(0, startTime + beepDuration);
@@ -325,9 +376,8 @@
 
         function addLog(message, type = '') {
             const now = new Date();
-            const timeStr = now.toLocaleTimeString(); // e.g. "10:30:15 AM"
+            const timeStr = now.toLocaleTimeString();
 
-            // Clear placeholder
             if (logList.children[0] && logList.children[0].innerText === "No incidents recorded") {
                 logList.innerHTML = "";
             }
@@ -343,7 +393,6 @@
 
         async function sendCommand(cmd) {
             if (writer) {
-                // IMPORTANT: Send \r\n for better compatibility with micro:bit serial
                 await writer.write(cmd + "\r\n");
                 console.log("TX:", cmd);
             }
@@ -353,15 +402,13 @@
         document.getElementById('stopBtn').addEventListener('click', () => sendCommand("STOP"));
         document.getElementById('resetBtn').addEventListener('click', () => {
             sendCommand("RESET");
-            // Clear logs on web UI
+            // Clear logs on web UI temporarily until confirmed, or just clear them
             logList.innerHTML = '<li style="color:#aaa; text-align:center; padding:10px;">No incidents recorded</li>';
             statusDiv.innerText = "Status: System Reset";
             setTimeout(() => {
                 if (port && port.readable) statusDiv.innerText = "Status: Connected";
             }, 2000);
         });
-
-
 
     </script>
 </body>
