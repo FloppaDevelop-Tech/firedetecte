@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fire Prevention System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="dashboard">
+        <h1>Safety Control</h1>
+        <h2>Fire Detection System</h2>
+
+        <!-- Location Panel -->
+        <div class="location-card">
+            <div class="location-icon"></div>
+            <div class="location-text">
+                505/5 ซอย อิสรภาพ 42<br>
+                Wat Arun, Bangkok Yai, Bangkok 10600
+            </div>
+        </div>
+
+        <!-- Real-time Dashboard -->
+        <div class="sensor-dashboard">
+            <div class="sensor-item">
+                <div class="sensor-label">Temperature</div>
+                <div class="sensor-value" id="tempValue">--°C</div>
+            </div>
+            <div class="sensor-item">
+                <div class="sensor-label">Smoke</div>
+                <div class="sensor-value" id="smokeValue">--</div>
+            </div>
+            <div class="sensor-item">
+                <div class="sensor-label">Fire</div>
+                <div class="sensor-value" id="fireValue">--</div>
+            </div>
+        </div>
+
+        <!-- LED Indicators -->
+        <div class="led-panel">
+            <div class="led-wrapper">
+                <div id="ledRed" class="led red"></div>
+                <span class="led-label">FIRE</span>
+            </div>
+            <div class="led-wrapper">
+                <div id="ledOrange" class="led orange"></div>
+                <span class="led-label">SMOKE</span>
+            </div>
+        </div>
+
+        <!-- Connect Button -->
+        <button id="connectBtn">
+            <svg viewBox="0 0 24 24">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+            Connect Device
+        </button>
+
+        <!-- Controls -->
+        <div id="controls" class="hidden">
+            <button id="stopBtn">
+                <svg viewBox="0 0 24 24">
+                    <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+                    <line x1="23" y1="9" x2="17" y2="15"></line>
+                    <line x1="17" y1="9" x2="23" y2="15"></line>
+                </svg>
+                Mute Alarm
+            </button>
+            <button id="resetBtn">
+                <svg viewBox="0 0 24 24">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+                Reset System
+            </button>
+        </div>
+
+        <div class="log-container">
+
+            <div class="log-title">INCIDENT LOGS</div>
+            <ul id="logList" class="log-list">
+                <li style="color:#aaa; text-align:center; padding:10px;">No incidents recorded</li>
+            </ul>
+        </div>
+
+        <div id="status" style="margin-top:20px; font-size:11px; color:#aaa;">Status: Disconnected</div>
+    </div>
+    <!-- Custom Alert Sound Setup -->
+    <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
+        <label for="customSoundBtn" style="font-size: 12px; color: #666; display: block; margin-bottom: 5px;">Custom
+            Alert Sound:</label>
+        <input type="file" id="audioFile" accept="audio/*" style="display: none;">
+        <button id="customSoundBtn" onclick="document.getElementById('audioFile').click()"
+            style="background: #f0f0f0; color: #333; border: 1px solid #ccc; font-size: 12px; padding: 5px 10px;">
+            Choose Audio File...
+        </button>
+        <span id="fileName" style="display: none;">Default: alert.mp3</span>
+    </div>
+
+    <audio id="customAlert" src="alert.mp3"></audio>
+
+    <script>
+        let port;
+        let reader;
+        let writer;
+        let keepReading = false;
+        let audioCtx;
+
+        // Custom Audio Logic
+        const audioFileInp = document.getElementById('audioFile');
+        const customAlertAudio = document.getElementById('customAlert');
+        const fileNameSpan = document.getElementById('fileName');
+
+        audioFileInp.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                customAlertAudio.src = url;
+                fileNameSpan.innerText = file.name;
+                // Test play gently to confirm
+                // customAlertAudio.volume = 0.5;
+                // customAlertAudio.play();
+            }
+        });
+
+        const connectBtn = document.getElementById('connectBtn');
+        const controlsDiv = document.getElementById('controls');
+        const logList = document.getElementById('logList');
+        const statusDiv = document.getElementById('status');
+        const customAudio = document.getElementById('customAlert');
+
+        async function connect() {
+            try {
+                // Request Serial Port (115200 is standard micro:bit baud)
+                port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 115200 });
+
+                // Initialize Audio Context on user gesture
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                } else if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                // Pre-load audio if it exists to unlock it on iOS/Android
+                if (customAudio) {
+                    customAudio.load();
+                }
+
+                statusDiv.innerText = "Status: Connected";
+                statusDiv.style.color = "#000";
+
+                // Show Controls
+                connectBtn.classList.add('hidden');
+                controlsDiv.classList.remove('hidden');
+                controlsDiv.classList.add('visible');
+
+                // Setup Writer (Send Commands)
+                const textEncoder = new TextEncoderStream();
+                const writableStreamClosed = textEncoder.readable.pipeTo(port.writable);
+                writer = textEncoder.writable.getWriter();
+
+                // Setup Reader (Receive Data)
+                keepReading = true;
+                readLoop();
+
+            } catch (err) {
+                console.error("Connection Error:", err);
+                statusDiv.innerText = "Status: Connection Failed (Check Console)";
+            }
+        }
+
+        async function readLoop() {
+            const textDecoder = new TextDecoderStream();
+            const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+            reader = textDecoder.readable.getReader();
+
+            let buffer = "";
+
+            try {
+                while (keepReading) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+
+                    if (value) {
+                        buffer += value;
+                        // Split by newline (handle both \r\n and \n)
+                        let lines = buffer.split(/\r?\n/);
+                        buffer = lines.pop(); // Keep last potentially incomplete fragment
+
+                        for (const line of lines) {
+                            if (line.trim()) handleData(line.trim());
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Read Error:", error);
+                statusDiv.innerText = "Status: Read Error - Reconnect";
+            } finally {
+                reader.releaseLock();
+            }
+        }
+
+        function handleData(line) {
+            console.log("RX:", line);
+
+            // Handle Different Alert Types
+            // Expected formats:
+            // "ALERT:FIRE:TEMP:xx" - Fire detected
+            // "ALERT:SMOKE:TEMP:xx" - Smoke detected
+            // "ALERT:CRITICAL:TEMP:xx" - Both fire and smoke
+            // "ALERT:TEMP:xx" - Legacy format (fire only)
+
+            if (line.startsWith("ALERT:")) {
+                const parts = line.split(':');
+
+                if (parts.length >= 4) {
+                    // New format with alert type
+                    const alertType = parts[1];
+                    const temp = parts[3];
+
+                    if (alertType === "CRITICAL") {
+                        addLog(`CRITICAL! Fire & Smoke Detected! Temp: ${temp}°C`, 'critical');
+                        playAlertSound(880, 'sawtooth'); // High pitch for critical
+                    } else if (alertType === "FIRE") {
+                        addLog(`Fire Detected! Temp: ${temp}°C`, 'danger');
+                        playAlertSound(660, 'square'); // Medium pitch
+                    } else if (alertType === "SMOKE") {
+                        addLog(` Smoke Detected! Temp: ${temp}°C`, 'warning');
+                        playAlertSound(440, 'sine'); // Low pitch
+                    }
+                } else if (parts.length >= 3 && parts[1] === "TEMP") {
+                    // Legacy format
+                    addLog(`Fire Detected! Temp: ${parts[2]}°C`, 'danger');
+                    playAlertSound(660, 'square');
+                }
+            }
+            // Handle Acknowledgment
+            else if (line.includes("ACK:")) {
+                console.log("Command Acknowledged:", line);
+            } else if (line.includes("RESET")) {
+                statusDiv.innerText = "Status: System Reset";
+                // Ensure logs are cleared on confirmation
+                logList.innerHTML = '<li style="color:#aaa; text-align:center; padding:10px;">No incidents recorded</li>';
+            }
+        }
+            // Handle Status Telemetry
+            // Format: STATUS:FIRE:<val>:SMOKE:<val>:TEMP:<val>
+            else if (line.startsWith("STATUS:")) {
+            const parts = line.split(':');
+            if (parts.length >= 7) {
+                const fireVal = parseInt(parts[2]);
+                const smokeVal = parseInt(parts[4]);
+                const tempVal = parts[6];
+
+                // Update Dashboard
+                document.getElementById('tempValue').innerText = tempVal + "°C";
+                document.getElementById('smokeValue').innerText = smokeVal;
+                document.getElementById('fireValue').innerText = fireVal;
+
+                // Update LEDs
+                // Red LED for Fire (Value < 300)
+                const ledRed = document.getElementById('ledRed');
+                if (fireVal < 300) {
+                    ledRed.classList.add('active');
+                } else {
+                    ledRed.classList.remove('active');
+                }
+
+                // Orange LED for Smoke (Value > 620)
+                const ledOrange = document.getElementById('ledOrange');
+                if (smokeVal > 620) {
+                    ledOrange.classList.add('active');
+                } else {
+                    ledOrange.classList.remove('active');
+                }
+            }
+        }
+        }
+
+        function playAlertSound(freq = 660, type = 'square') {
+            // OPTION 1: Use Recorded Audio (alert.mp3)
+            // If you have a file named 'alert.mp3' in your folder, it will play.
+            if (customAudio && customAudio.readyState >= 2) { // 2 = HAD_CURRENT_DATA
+                // Reset to start and play
+                customAudio.currentTime = 0;
+                customAudio.play().catch(e => console.log("Custom audio play error (maybe file not found?):", e));
+                return; // Exit function so we don't play the beep too
+            }
+
+            // OPTION 2: Fallback to Generated Beep
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+            const beepDuration = 0.1;
+            const pauseDuration = 0.1;
+            const repeatCount = 3; // Beep 3 times per alert
+
+            for (let i = 0; i < repeatCount; i++) {
+                const startTime = now + (i * (beepDuration + pauseDuration));
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, startTime);
+
+                // Envelope
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(0.3, startTime + 0.02);
+                gain.gain.linearRampToValueAtTime(0, startTime + beepDuration);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(startTime);
+                osc.stop(startTime + beepDuration);
+            }
+        }
+
+        function addLog(message, type = '') {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString(); // e.g. "10:30:15 AM"
+
+            // Clear placeholder
+            if (logList.children[0] && logList.children[0].innerText === "No incidents recorded") {
+                logList.innerHTML = "";
+            }
+
+            const li = document.createElement('li');
+            li.className = 'log-item ' + type;
+            li.innerHTML = `
+                <span>${message}</span>
+                <span class="log-time">${timeStr}</span>
+            `;
+            logList.prepend(li);
+        }
+
+        async function sendCommand(cmd) {
+            if (writer) {
+                // IMPORTANT: Send \r\n for better compatibility with micro:bit serial
+                await writer.write(cmd + "\r\n");
+                console.log("TX:", cmd);
+            }
+        }
+
+        connectBtn.addEventListener('click', connect);
+        document.getElementById('stopBtn').addEventListener('click', () => sendCommand("STOP"));
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            sendCommand("RESET");
+            // Clear logs on web UI
+            logList.innerHTML = '<li style="color:#aaa; text-align:center; padding:10px;">No incidents recorded</li>';
+            statusDiv.innerText = "Status: System Reset";
+            setTimeout(() => {
+                if (port && port.readable) statusDiv.innerText = "Status: Connected";
+            }, 2000);
+        });
+
+
+
+    </script>
+</body>
+
+</html>

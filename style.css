@@ -1,0 +1,144 @@
+:root {
+    --bg-color: #ffffff;
+    --text-color: #111111;
+    --border-color: #e0e0e0;
+    --acc-color: #000000;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.dashboard {
+    width: 100%;
+    max-width: 450px;
+    padding: 30px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+h1 {
+    font-weight: 600;
+    font-size: 20px;
+    margin: 0 0 5px 0;
+    letter-spacing: -0.02em;
+}
+
+h2 {
+    font-weight: 400;
+    font-size: 13px;
+    color: #666;
+    margin: 0 0 30px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+button {
+    background: transparent;
+    border: 1px solid var(--text-color);
+    color: var(--text-color);
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 6px;
+    margin: 6px 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.2s ease;
+}
+
+button:hover {
+    background-color: var(--text-color);
+    color: var(--bg-color);
+}
+
+button:hover svg {
+    stroke: var(--bg-color);
+}
+
+.hidden {
+    display: none !important;
+}
+
+.visible {
+    display: flex !important;
+}
+
+/* Log List Styling */
+.log-container {
+    margin-top: 25px;
+    text-align: left;
+    border-top: 1px solid var(--border-color);
+    padding-top: 15px;
+}
+
+.log-title {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.log-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 150px;
+    overflow-y: auto;
+    font-size: 12px;
+}
+
+.log-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid #f0f0f0;
+    color: #444;
+}
+
+/* Alert Styles */
+.log-item.critical {
+    color: #d32f2f;
+    font-weight: 600;
+    background-color: #ffebee;
+    padding-left: 5px;
+    padding-right: 5px;
+    border-radius: 4px;
+}
+
+.log-item.danger {
+    color: #d32f2f;
+    font-weight: 600;
+}
+
+.log-item.warning {
+    color: #ef6c00;
+    font-weight: 600;
+}
+
+.log-time {
+    color: #888;
+    font-size: 11px;
+}
+
+svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+}
