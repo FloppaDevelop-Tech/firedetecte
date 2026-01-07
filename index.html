@@ -16,7 +16,12 @@
 
         <!-- Location Panel -->
         <div class="location-card">
-            <div class="location-icon"></div>
+            <div class="location-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+            </div>
             <div class="location-text">
                 505/5 ซอย อิสรภาพ 42<br>
                 Wat Arun, Bangkok Yai, Bangkok 10600
@@ -314,24 +319,31 @@
                     if (fireEl) fireEl.innerText = fireVal;
 
                     // Update LEDs
-                    // Red LED for Fire (Value < 300)
+                    // Red LED for Fire (Value < 300 = Fire detected)
                     const ledRed = document.getElementById('ledRed');
                     if (ledRed) {
                         if (fireVal < 300) {
                             ledRed.classList.add('active');
+                            console.log('FIRE LED ON - Fire value:', fireVal);
                         } else {
                             ledRed.classList.remove('active');
                         }
                     }
 
-                    // Orange LED for Smoke (Value > 620)
+                    // Orange LED for Smoke (Value > 620 = Smoke detected)
                     const ledOrange = document.getElementById('ledOrange');
                     if (ledOrange) {
                         if (smokeVal > 620) {
                             ledOrange.classList.add('active');
+                            console.log('SMOKE LED ON - Smoke value:', smokeVal);
                         } else {
                             ledOrange.classList.remove('active');
                         }
+                    }
+
+                    // Debug: Log values every 20 updates (every ~4 seconds at 5 updates/sec)
+                    if (Math.random() < 0.05) {
+                        console.log(`📊 Sensors - Fire: ${fireVal} ${fireVal < 300 ? '🔥' : '✓'} | Smoke: ${smokeVal} ${smokeVal > 620 ? '💨' : '✓'}`);
                     }
                 }
             }
