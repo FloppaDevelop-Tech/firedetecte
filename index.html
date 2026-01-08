@@ -47,10 +47,6 @@
         <!-- LED Indicators -->
         <div class="led-panel">
             <div class="led-wrapper">
-                <div id="ledRed" class="led red"></div>
-                <span class="led-label">FIRE</span>
-            </div>
-            <div class="led-wrapper">
                 <div id="ledOrange" class="led orange"></div>
                 <span class="led-label">SMOKE</span>
             </div>
@@ -322,7 +318,7 @@
                     // Red LED for Fire (Value < 850 = Fire detected - adjusted for sensitivity)
                     const ledRed = document.getElementById('ledRed');
                     if (ledRed) {
-                        if (fireVal > 900) {
+                        if (fireVal > 700) {
                             ledRed.classList.add('active');
                             console.log('FIRE LED ON - Fire value:', fireVal);
                         } else {
@@ -333,7 +329,7 @@
                     // Orange LED for Smoke (Value > 400 = Smoke detected - adjusted for sensitivity)
                     const ledOrange = document.getElementById('ledOrange');
                     if (ledOrange) {
-                        if (smokeVal > 400) {
+                        if (smokeVal > 500) {
                             ledOrange.classList.add('active');
                             console.log('SMOKE LED ON - Smoke value:', smokeVal);
                         } else {
