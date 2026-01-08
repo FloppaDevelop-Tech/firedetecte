@@ -322,7 +322,7 @@
                     // Red LED for Fire (Value < 850 = Fire detected - adjusted for sensitivity)
                     const ledRed = document.getElementById('ledRed');
                     if (ledRed) {
-                        if (fireVal < 850) {
+                        if (fireVal > 900) {
                             ledRed.classList.add('active');
                             console.log('FIRE LED ON - Fire value:', fireVal);
                         } else {
