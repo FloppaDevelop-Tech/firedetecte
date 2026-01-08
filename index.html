@@ -319,10 +319,10 @@
                     if (fireEl) fireEl.innerText = fireVal;
 
                     // Update LEDs
-                    // Red LED for Fire (Value < 400 = Fire detected - adjusted for sensitivity)
+                    // Red LED for Fire (Value < 850 = Fire detected - adjusted for sensitivity)
                     const ledRed = document.getElementById('ledRed');
                     if (ledRed) {
-                        if (fireVal < 450) {
+                        if (fireVal < 850) {
                             ledRed.classList.add('active');
                             console.log('FIRE LED ON - Fire value:', fireVal);
                         } else {
