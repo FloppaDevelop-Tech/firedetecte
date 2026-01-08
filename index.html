@@ -330,10 +330,10 @@
                         }
                     }
 
-                    // Orange LED for Smoke (Value > 370 = Smoke detected - adjusted for sensitivity)
+                    // Orange LED for Smoke (Value > 400 = Smoke detected - adjusted for sensitivity)
                     const ledOrange = document.getElementById('ledOrange');
                     if (ledOrange) {
-                        if (smokeVal > 370) {
+                        if (smokeVal > 400) {
                             ledOrange.classList.add('active');
                             console.log('SMOKE LED ON - Smoke value:', smokeVal);
                         } else {
