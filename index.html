@@ -315,10 +315,10 @@
                     if (fireEl) fireEl.innerText = fireVal;
 
                     // Update LEDs
-                    // Red LED for Fire (Value < 700 = Fire detected)
+                    // Red LED for Fire (Value < 760 = Fire detected)
                     const ledRed = document.getElementById('ledRed');
                     if (ledRed) {
-                        if (fireVal < 700) {
+                        if (fireVal < 760) {
                             ledRed.classList.add('active');
                             console.log('FIRE LED ON - Fire value:', fireVal);
                         } else {
@@ -326,10 +326,10 @@
                         }
                     }
 
-                    // Orange LED for Smoke (Value > 550 = Smoke detected)
+                    // Orange LED for Smoke (Value > 520 = Smoke detected)
                     const ledOrange = document.getElementById('ledOrange');
                     if (ledOrange) {
-                        if (smokeVal > 550) {
+                        if (smokeVal > 520) {
                             ledOrange.classList.add('active');
                             console.log('SMOKE LED ON - Smoke value:', smokeVal);
                         } else {
