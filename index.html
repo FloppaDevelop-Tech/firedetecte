@@ -103,7 +103,7 @@
         <span id="fileName" style="display: none;">Default: alert.mp3</span>
     </div>
 
-    <audio id="customAlert" src="alert.mp3"></audio>
+    <audio id="customAlert"></audio>
 
     <!-- Firebase SDK -->
     <script type="module">
@@ -315,10 +315,10 @@
                     if (fireEl) fireEl.innerText = fireVal;
 
                     // Update LEDs
-                    // Red LED for Fire (Value < 850 = Fire detected - adjusted for sensitivity)
+                    // Red LED for Fire (Value < 700 = Fire detected)
                     const ledRed = document.getElementById('ledRed');
                     if (ledRed) {
-                        if (fireVal > 700) {
+                        if (fireVal < 700) {
                             ledRed.classList.add('active');
                             console.log('FIRE LED ON - Fire value:', fireVal);
                         } else {
@@ -326,10 +326,10 @@
                         }
                     }
 
-                    // Orange LED for Smoke (Value > 400 = Smoke detected - adjusted for sensitivity)
+                    // Orange LED for Smoke (Value > 550 = Smoke detected)
                     const ledOrange = document.getElementById('ledOrange');
                     if (ledOrange) {
-                        if (smokeVal > 500) {
+                        if (smokeVal > 550) {
                             ledOrange.classList.add('active');
                             console.log('SMOKE LED ON - Smoke value:', smokeVal);
                         } else {
